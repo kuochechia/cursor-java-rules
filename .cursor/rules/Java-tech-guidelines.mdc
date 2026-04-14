@@ -1,0 +1,70 @@
+---
+description: Java 技術實作規範（API 設計、例外、Spring、測試、建置、效能、並行）
+alwaysApply: true
+---
+
+# Java Tech Guidelines
+
+## 技術棧
+- **Language**：JDK 21
+- **Framework**：Spring Boot 3.5.5
+- **Build Tool**：Maven (pom.xml)
+- **Persistence**：Spring Data JPA
+
+## Maven Commands
+- **編譯與打包**：`mvn clean package -DskipTests`
+- **完整安裝與測試**：`mvn clean install`
+- **本地執行**：`mvn spring-boot:run`
+- **執行特定測試**：`mvn test -Dtest=ClassName`
+- **清理快取**：`mvn clean`
+
+## 目的與風格
+
+- **規範**: 嚴格遵循 [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html)。
+- **可讀性優先**：寧可多寫幾行清楚的程式，也不要用過度精巧的寫法。
+- **命名要具體**：避免 `data/info/tmp`；布林用 `is/has/should`；集合用複數。
+- **小方法，小責任**：一個方法做一件事；避免深層巢狀 `if`（可用 guard clause）。
+
+## API / OOP 設計
+
+- **依賴注入**：嚴格執行 **Constructor Injection**。禁止使用 `@Autowired` 欄位注入。
+- **不可變性**：
+    - 層與層之間（DTO/Request/Response）全面使用 **Java Records**。
+    - 內部邏輯優先使用 `final` 關鍵字。
+- **Lombok 使用範式**：
+    - DTO: 使用 `@Data` 或 Record。
+    - JPA Entities: 嚴禁使用 `@Data`。必須使用 `@Getter`, `@Setter`, `@NoArgsConstructor(access = AccessLevel.PROTECTED)` 以避免效能與循環引用問題。
+- **以介面表達意圖**：對外 API 以介面/抽象描述行為，實作細節留在內部。
+- **顯式 null 策略**：API 決定「允許 null / 不允許 null / 使用 Optional」，並一致執行（不要把 `Optional` 當欄位型別）。
+
+## 例外與錯誤處理
+
+- **異常處理**：API 回傳格式需統一（包含 Code, Message, Timestamp, Data）。
+- **不要吞例外**：除非能完整處理；否則記錄足夠上下文並 rethrow。
+- **unchecked 為預設**：把 checked exception 限縮在邊界（IO/外部系統），內部用 domain exception 表達業務錯誤。
+- **保留 cause**：包裝例外時保留 `cause`；訊息描述「失敗的動作」而非僅錯誤碼。
+
+## Spring / Spring Boot 慣例
+
+- **分層清楚**：Controller 做 HTTP 轉換；Service 放業務規則；Repository 只管資料存取。
+- **DTO 與 Entity 分離**：不要直接把 JPA Entity 當 API contract。
+- **DTO 轉換**：使用 MapStruct。`Service` 層禁止直接回傳 `Entity` 給 `Controller`。
+- **交易邊界明確**：`@Transactional` 放在 service 層；避免在同類別內自呼叫期待交易生效。
+- **引用明確**：優先使用已有的 `Utils` 及 Library，禁止導入具有相同功能卻不同的 Library。
+
+## 測試（JUnit5）
+
+- **測試命名**：`method_underCondition_expectedResult` 或 `given_when_then`，保持一致。
+- **優先寫狀態驗證**：少做互動驗證；需要 mock 時只 mock 邊界（外部 IO/時間/隨機/遠端）。
+- **避免脆弱測試**：不要依賴執行順序；避免硬編碼時區/時間（以 Clock 注入）。
+
+## 建置與依賴（Maven/Gradle）
+
+- **版本可重現**：鎖定依賴版本；避免漂移（例如用 BOM / dependency management）。
+- **分清依賴範疇**：`test`、`provided`、`runtime` 用對；不把測試依賴帶到 production classpath。
+
+## 效能與並行
+
+- **避免不必要的配置**：熱路徑避免多餘的 `stream()`/lambda；字串組合用 `StringBuilder`（非編譯期常量）。
+- **集合選擇有理由**：`ArrayList` 預設；需要 key 查找才用 `HashMap`；大型集合記得預估容量。
+- **並行用高階工具**：偏好 `ExecutorService`/`CompletableFuture`；避免手寫 thread 管理；共享狀態要明確同步策略（不可變、封裝、鎖或並行集合）。
