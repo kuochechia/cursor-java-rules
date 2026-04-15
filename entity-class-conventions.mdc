@@ -1,0 +1,11 @@
+---
+description: Sets the standards for entity class design including annotations, ID generation strategies, and relationship configurations for database interaction.
+globs: **/src/main/java/com/example/entity/*.java
+alwaysApply: true
+---
+- Must annotate entity classes with @Entity.
+- Must annotate entity classes with @Getter and @Setter (from Lombok) instead of @Data, to avoid equals/hashCode triggering lazy loading and causing performance issues or exceptions.
+- Must override equals() and hashCode() manually, based on the entity ID only. hashCode() must return getClass().hashCode().
+- Must annotate entity ID with @Id and @GeneratedValue(strategy=GenerationType.IDENTITY).
+- Must use FetchType.LAZY for relationships, unless specified in a prompt otherwise.
+- Annotate entity properties properly according to best practices, e.g., @Size, @NotEmpty, @Email, etc.
